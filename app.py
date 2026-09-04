@@ -6,6 +6,27 @@ from datetime import datetime
 
 st.set_page_config(page_title="Parser for Reddit Stories", layout="centered")
 
+def check_password():
+    def password_entered():
+        if st.session_state["password"] == st.secrets["APP_PASSWORD"]:
+            st.session_state["password_correct"] = True
+            del st.session_state["password"] 
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        st.text_input("Enter Password", type="password", on_change=password_entered, key="password")
+        return False
+    elif not st.session_state["password_correct"]:
+        st.text_input("Enter Password", type="password", on_change=password_entered, key="password")
+        st.error("❌ Incorrect Password")
+        return False
+    else:
+        return True
+
+if not check_password():
+    st.stop()
+
 VIEWED_FILE = "viewed_ids.txt"
 if not os.path.exists(VIEWED_FILE):
     open(VIEWED_FILE, 'w').close()
