@@ -4,10 +4,8 @@ import random
 import os
 from datetime import datetime
 
-# --- НАСТРОЙКИ СТРАНИЦЫ ---
 st.set_page_config(page_title="Parser for Reddit Stories", layout="centered")
 
-# --- ФАЙЛ ПАМЯТИ (ЧЕРНЫЙ СПИСОК) ---
 VIEWED_FILE = "viewed_ids.txt"
 if not os.path.exists(VIEWED_FILE):
     open(VIEWED_FILE, 'w').close()
@@ -23,7 +21,6 @@ def save_viewed_id(post_id):
 def clear_cart():
     st.session_state.approved_stories = []
 
-# --- ИНИЦИАЛИЗАЦИЯ ПАМЯТИ СЕССИИ ---
 if 'stories' not in st.session_state:
     st.session_state.stories = []
 if 'current_index' not in st.session_state:
@@ -31,13 +28,11 @@ if 'current_index' not in st.session_state:
 if 'approved_stories' not in st.session_state:
     st.session_state.approved_stories = []
 
-# --- БОКОВАЯ ПАНЕЛЬ (НАСТРОЙКИ) ---
 st.sidebar.header("Parser Settings")
 
 uploaded_file = st.sidebar.file_uploader("Upload Dump (.jsonl)", type=['jsonl'])
 
 if uploaded_file is not None:
-    # ЛИМИТЫ ОТ И ДО (СНЯТЫ ЖЕСТКИЕ ОГРАНИЧЕНИЯ)
     col_min, col_max = st.sidebar.columns(2)
     with col_min:
         min_words = st.number_input("Min Words:", min_value=1, value=1, step=10)
@@ -46,7 +41,6 @@ if uploaded_file is not None:
         
     min_score = st.sidebar.number_input("Min Upvotes:", min_value=0, value=1, step=10)
     
-    # ПОИСК ПО СЛОВУ
     search_keyword = st.sidebar.text_input("Contains Word (optional):", value="")
 
     if st.sidebar.button("Load and Shuffle", use_container_width=True):
@@ -69,9 +63,7 @@ if uploaded_file is not None:
                     words_count = len(text.split())
                     score = post.get('score', 0)
                     
-                    # 1. Проверка лимитов по словам и лайкам
                     if min_words <= words_count <= max_words and score >= min_score:
-                        # 2. Проверка на ключевое слово (если оно вписано)
                         if search_keyword and search_keyword.lower() not in text.lower() and search_keyword.lower() not in post.get('title', '').lower():
                             continue
 
@@ -87,7 +79,7 @@ if uploaded_file is not None:
                             'id': post_id,
                             'title': post.get('title', 'No Title'),
                             'text': text,
-                            'draft': text, # Черновик для редактора текста
+                            'draft': text, 
                             'words': words_count,
                             'score': score,
                             'date': date_str,
@@ -103,7 +95,6 @@ if uploaded_file is not None:
 else:
     st.sidebar.info("Please upload a .jsonl dump file to start.")
 
-# --- КНОПКА СКАЧИВАНИЯ ---
 if st.session_state.approved_stories:
     st.sidebar.markdown("---")
     st.sidebar.subheader(f"Cart: {len(st.session_state.approved_stories)} items")
@@ -122,7 +113,6 @@ if st.session_state.approved_stories:
         on_click=clear_cart
     )
 
-# --- ГЛАВНЫЙ ЭКРАН ---
 st.title("Parser for Reddit Stories")
 
 if st.session_state.stories:
@@ -137,7 +127,6 @@ if st.session_state.stories:
             
         st.caption(f"**Words:** {current['words']} | **Upvotes:** {current['score']} | **Date:** {current['date']} | [Post Link]({current['url']})")
         
-        # ЛОГИКА РЕДАКТОРА С ЧЕРНОВИКОМ
         if edit_mode:
             temp_draft = st.text_area("Edit mode active (save your changes below!):", value=current.get('draft', current['text']), height=400)
             
@@ -151,7 +140,6 @@ if st.session_state.stories:
                     current['draft'] = current['text']
                     st.rerun()
         else:
-            # В режиме чтения показываем черновик (если он был изменен) или оригинал
             with st.expander("Read Text", expanded=True):
                 st.write(current.get('draft', current['text']))
             
@@ -161,7 +149,7 @@ if st.session_state.stories:
         with col1:
             if st.button("APPROVE", use_container_width=True):
                 save_viewed_id(current['id'])
-                current['text'] = current.get('draft', current['text']) # Отправляем черновик в итоговый txt
+                current['text'] = current.get('draft', current['text']) 
                 st.session_state.approved_stories.append(current)
                 st.session_state.current_index += 1
                 st.rerun()
