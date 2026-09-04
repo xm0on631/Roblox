@@ -4,56 +4,7 @@ import random
 import os
 from datetime import datetime
 
-st.set_page_config(page_title="Secret Reddit Parser", page_icon="📖", layout="centered")
-
-st.sidebar.markdown("---")
-st.sidebar.subheader("🎨 Настройки визуала")
-accent_color = st.sidebar.color_picker("Акцентный цвет", "#7952B3") 
-font_size = st.sidebar.slider("Размер текста историй", min_value=14, max_value=24, value=16)
-
-custom_css = f"""
-<style>
-    /* Прячем стандартный мусор Streamlit */
-    #MainMenu {{visibility: hidden;}}
-    footer {{visibility: hidden;}}
-    header {{visibility: hidden;}}
-    
-    /* Стилизуем все кнопки на сайте */
-    .stButton>button {{
-        border-radius: 8px !important;
-        transition: all 0.2s ease-in-out !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    }}
-    .stButton>button:hover {{
-        border-color: {accent_color} !important;
-        color: {accent_color} !important;
-        box-shadow: 0 0 12px {accent_color}40 !important;
-    }}
-    
-    /* Главная кнопка (Download Script) */
-    .stDownloadButton>button {{
-        background-color: {accent_color}20 !important;
-        border: 1px solid {accent_color} !important;
-        color: white !important;
-    }}
-    .stDownloadButton>button:hover {{
-        background-color: {accent_color}40 !important;
-    }}
-    
-    /* Текст самой истории (применяем ползунок размера) */
-    .streamlit-expanderContent p, .stTextArea textarea {{
-        font-size: {font_size}px !important;
-        line-height: 1.6 !important;
-    }}
-    
-    /* Скругляем края у текстовых полей */
-    .stTextArea textarea {{
-        border-radius: 10px !important;
-    }}
-</style>
-"""
-st.markdown(custom_css, unsafe_allow_html=True)
-# -----------------------------------------------
+st.set_page_config(page_title="Parser for Reddit Stories", layout="centered")
 
 def check_password():
     def password_entered():
@@ -98,27 +49,26 @@ if 'current_index' not in st.session_state:
 if 'approved_stories' not in st.session_state:
     st.session_state.approved_stories = []
 
-st.sidebar.markdown("---")
-st.sidebar.header("⚙️ Настройки парсера")
+st.sidebar.header("Parser Settings")
 
-uploaded_file = st.sidebar.file_uploader("Загрузить дамп (.jsonl)", type=['jsonl'])
+uploaded_file = st.sidebar.file_uploader("Upload Dump (.jsonl)", type=['jsonl'])
 
 if uploaded_file is not None:
     col_min, col_max = st.sidebar.columns(2)
     with col_min:
-        min_words = st.number_input("Мин. слов:", min_value=1, value=1, step=10)
+        min_words = st.number_input("Min Words:", min_value=1, value=1, step=10)
     with col_max:
-        max_words = st.number_input("Макс. слов:", min_value=1, value=1000, step=100)
+        max_words = st.number_input("Max Words:", min_value=1, value=1000, step=100)
         
-    min_score = st.sidebar.number_input("Мин. апвоутов:", min_value=0, value=1, step=10)
+    min_score = st.sidebar.number_input("Min Upvotes:", min_value=0, value=1, step=10)
     
-    search_keyword = st.sidebar.text_input("Содержит слово (необязательно):", value="")
+    search_keyword = st.sidebar.text_input("Contains Word (optional):", value="")
 
-    if st.sidebar.button("🎲 Загрузить и перемешать", use_container_width=True):
+    if st.sidebar.button("Load and Shuffle", use_container_width=True):
         valid_stories = []
         viewed_ids = get_viewed_ids()
         
-        with st.spinner('Чтение базы и пропуск просмотренных...'):
+        with st.spinner('Reading database & skipping viewed posts...'):
             for line in uploaded_file:
                 try:
                     post = json.loads(line)
@@ -162,13 +112,13 @@ if uploaded_file is not None:
         random.shuffle(valid_stories)
         st.session_state.stories = valid_stories
         st.session_state.current_index = 0
-        st.sidebar.success(f"Найдено НОВЫХ историй: {len(valid_stories)}")
+        st.sidebar.success(f"Found NEW stories: {len(valid_stories)}")
 else:
-    st.sidebar.info("Загрузи .jsonl файл, чтобы начать.")
+    st.sidebar.info("Please upload a .jsonl dump file to start.")
 
 if st.session_state.approved_stories:
     st.sidebar.markdown("---")
-    st.sidebar.subheader(f"🛒 Корзина: {len(st.session_state.approved_stories)} шт.")
+    st.sidebar.subheader(f"Cart: {len(st.session_state.approved_stories)} items")
     
     export_text = ""
     for s in st.session_state.approved_stories:
@@ -176,7 +126,7 @@ if st.session_state.approved_stories:
         export_text += "-" * 50 + "\n" + s['text'] + "\n" + "=" * 50 + "\n\n"
         
     st.sidebar.download_button(
-        label="📥 СКАЧАТЬ СКРИПТ (.txt)",
+        label="DOWNLOAD SCRIPT (.txt)",
         data=export_text,
         file_name="approved_stories.txt",
         mime="text/plain",
@@ -194,46 +144,46 @@ if st.session_state.stories:
         with col_title:
             st.markdown(f"### {current['title']}")
         with col_edit:
-            edit_mode = st.toggle("✏️ Редактор")
+            edit_mode = st.toggle("✏️ Edit Text")
             
-        st.caption(f"**Слов:** {current['words']} | **Апвоутов:** {current['score']} | **Дата:** {current['date']} | [Ссылка на пост]({current['url']})")
+        st.caption(f"**Words:** {current['words']} | **Upvotes:** {current['score']} | **Date:** {current['date']} | [Post Link]({current['url']})")
         
         if edit_mode:
-            temp_draft = st.text_area("Режим редактирования (не забудь сохранить!):", value=current.get('draft', current['text']), height=400)
+            temp_draft = st.text_area("Edit mode active (save your changes below!):", value=current.get('draft', current['text']), height=400)
             
             col_save, col_revert = st.columns(2)
             with col_save:
-                if st.button("💾 Сохранить правки", use_container_width=True):
+                if st.button("💾 Save Edits to Draft", use_container_width=True):
                     current['draft'] = temp_draft
-                    st.success("Сохранено!")
+                    st.success("Draft saved!")
             with col_revert:
-                if st.button("❌ Сбросить", use_container_width=True):
+                if st.button("❌ Revert to Original", use_container_width=True):
                     current['draft'] = current['text']
                     st.rerun()
         else:
-            with st.expander("Читать историю", expanded=True):
+            with st.expander("Read Text", expanded=True):
                 st.write(current.get('draft', current['text']))
             
         st.markdown("---")
         
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("✅ БЕРУ (APPROVE)", use_container_width=True):
+            if st.button("APPROVE", use_container_width=True):
                 save_viewed_id(current['id'])
                 current['text'] = current.get('draft', current['text']) 
                 st.session_state.approved_stories.append(current)
                 st.session_state.current_index += 1
                 st.rerun()
         with col2:
-            if st.button("🗑️ В МУСОРКУ (SKIP)", use_container_width=True):
+            if st.button("SKIP", use_container_width=True):
                 save_viewed_id(current['id'])
                 st.session_state.current_index += 1
                 st.rerun()
                 
         progress = st.session_state.current_index / len(st.session_state.stories)
-        st.progress(progress, text=f"Просмотрено {st.session_state.current_index} из {len(st.session_state.stories)}")
+        st.progress(progress, text=f"Reviewed {st.session_state.current_index} out of {len(st.session_state.stories)}")
         
     else:
-        st.info("Истории в этом дампе закончились! Загрузи заново и перемешай, или выбери другой дамп.")
+        st.info("You've viewed all stories in this batch! Load and shuffle again or pick a new dump.")
 else:
-    st.write("Загрузи файл слева и нажми 'Загрузить и перемешать'.")
+    st.write("Upload a .jsonl dump file from the left menu and click 'Load and Shuffle' to start.")
